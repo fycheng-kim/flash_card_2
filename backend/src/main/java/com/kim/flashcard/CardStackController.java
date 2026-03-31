@@ -2,6 +2,10 @@ package com.kim.flashcard;
 
 import com.kim.flashcard.Model.Card;
 import com.kim.flashcard.Model.CardStack;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,11 +26,16 @@ public class CardStackController {
     }
 
     @GetMapping
-    public List<CardStack> getAllStacks() {
-        return repository.findAllByOrderByLastUsedDesc();
+    public Page<CardStack> getAllStacks(
+            @PageableDefault(
+                    page = 0,
+                    size = 10,
+                    sort = "lastUsed",
+                    direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return repository.findAllByOrderByLastUsedDesc(pageable);
     }
 
-    // NEW: Handle creating a stack
     @PostMapping
     public ResponseEntity<CardStack> createStack(@RequestBody CardStack stack) {
         // Ensure the time is set to now if the frontend didn't provide it
@@ -36,10 +45,32 @@ public class CardStackController {
         repository.save(stack);
         return ResponseEntity.ok(stack);
     }
-    
-    @GetMapping("/{id}/cards")
-    public List<Card> getCardsByStack(@PathVariable Long id) {
-        // This assumes you have a CardRepository and a relationship set up
-        return cardRepository.findByStackId(id);
+
+    @PutMapping("/{cardStackId}")
+    public ResponseEntity<CardStack> updateStackName(
+            @PathVariable Long cardStackId,
+            @RequestBody CardStack stackDetails
+    ) {
+        return repository.findById(cardStackId)
+                .map(existingStack -> {
+                    existingStack.setName(stackDetails.getName());
+                    // lastUsed remains unchanged or can be updated here if desired
+                    CardStack updated = repository.save(existingStack);
+                    return ResponseEntity.ok(updated);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
+    
+    @GetMapping("/{cardStackId}/cards")
+    public List<Card> getCardsByStack(@PathVariable Long cardStackId) {
+
+        return cardRepository.findByStackId(cardStackId);
+    }
+
+//    @PostMapping("/{cardStackId}")
+//    public CardStack addCardIntoCardStack(
+//            @PathVariable Long cardStackId
+//    ) {
+//        return cardRepository.findByStackId(cardStackId);
+//    }
 }

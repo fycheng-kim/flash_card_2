@@ -4,6 +4,9 @@ import com.kim.flashcard.Model.CardStack;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -27,13 +30,14 @@ class CardStackRepositoryTest extends BaseJpaRepositoryTest {
             entityManager.persist(cardStack);
             entityManager.flush();
         }
-        // WHEN
-        List<CardStack> foundCardStacks = cardStackRepository
-                .findAllByOrderByLastUsedDesc();
+        PageRequest pageRequest = PageRequest.of(0, 5, Sort.by("name").ascending());        // WHEN
+        Page<CardStack> foundCardStacks = cardStackRepository
+                .findAllByOrderByLastUsedDesc(pageRequest);
 
         // THEN
-        assertThat(foundCardStacks).hasSize(2);
-        assertThat(foundCardStacks.get(0).getLastUsed())
-                .isAfter(foundCardStacks.get(1).getLastUsed());
+        assertThat(foundCardStacks.getContent()).hasSize(2);
+        assertThat(foundCardStacks.getContent().get(0).getLastUsed())
+                .isAfter(foundCardStacks.getContent().get(1).getLastUsed());
     }
+
 }
